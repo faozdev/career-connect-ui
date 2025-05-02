@@ -9,9 +9,9 @@ export default function HomePage() {
       <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
         <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
           <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
-          <div className="flex gap-4">
-            <Link href="/login" className="text-white hover:text-yellow-400 transition">Giriş</Link>
-            <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1 rounded-full font-medium hover:bg-yellow-300 transition">Kayıt Ol</Link>
+          <div className="flex gap-4 items-center">
+            <Link href="/login" className="text-white hover:text-yellow-400 transition py-1 px-3 flex items-center">Giriş</Link>
+            <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1.5 rounded-full font-medium hover:bg-yellow-300 transition flex items-center">Kayıt Ol</Link>
           </div>
         </div>
       </nav>

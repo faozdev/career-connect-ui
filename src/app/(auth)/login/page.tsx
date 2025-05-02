@@ -14,9 +14,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(email, password);
+    const success = await login(email, password);
     if (success) {
       router.push('/dashboard');
     } else {
@@ -29,10 +29,17 @@ export default function LoginPage() {
       {/* Floating Nav */}
       <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
         <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
-          <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
+          <div className="text-xl font-bold">
+            CareerConnect<span className="text-yellow-400">.AI</span>
+          </div>
           <div className="flex gap-4">
             <Link href="/login" className="text-white hover:text-yellow-400 transition">Giriş</Link>
-            <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1 rounded-full font-medium hover:bg-yellow-300 transition">Kayıt Ol</Link>
+            <Link
+              href="/register"
+              className="bg-yellow-400 text-indigo-900 px-5 py-1 rounded-full font-medium hover:bg-yellow-300 transition"
+            >
+              Kayıt Ol
+            </Link>
           </div>
         </div>
       </nav>
@@ -47,8 +54,12 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-blue-100 mb-2">Email</label>
+              <label htmlFor="email" className="block text-sm font-medium text-blue-100 mb-2">
+                Email
+              </label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 value={email}
@@ -58,8 +69,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-blue-100 mb-2">Şifre</label>
+              <label htmlFor="password" className="block text-sm font-medium text-blue-100 mb-2">
+                Şifre
+              </label>
               <input
+                id="password"
+                name="password"
                 type="password"
                 className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 value={password}

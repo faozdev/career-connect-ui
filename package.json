@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "axios": "^1.9.0",
     "next": "^15.3.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/node": "^22.15.3",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.3",

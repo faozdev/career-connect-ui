@@ -1,10 +1,10 @@
 // src/app/(dashboard)/job-seeker-dashboard/page.tsx
-
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 interface Job {
   id: number;
@@ -27,7 +27,6 @@ export default function JobSeekerDashboard() {
       return;
     }
 
-    // Sahte veriyle çalışıyorsak burada load edebiliriz
     const dummyJobs: Job[] = [
       {
         id: 1,
@@ -35,7 +34,7 @@ export default function JobSeekerDashboard() {
         company: 'Acme Inc.',
         location: 'Remote',
         type: 'Full-time',
-        salary: '$70,000 - $90,000',
+        salary: '70.000₺ - 90.000₺',
       },
       {
         id: 2,
@@ -57,47 +56,57 @@ export default function JobSeekerDashboard() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-12">
-      <h2 className="text-2xl font-bold text-blue-600 mb-6">
-        Hoş geldin, {currentUser?.name}
-      </h2>
-
-      {/* CV Upload */}
-      <div className="bg-white p-6 rounded shadow mb-8">
-        <h3 className="text-lg font-semibold mb-2">CV Yükle</h3>
-        <input
-          type="file"
-          onChange={handleCVUpload}
-          className="block w-full border rounded px-3 py-2"
-        />
-        {!cvUploaded && (
-          <p className="text-red-500 text-sm mt-2">
-            Lütfen CV’nizi yükleyin. Yüklemeden iş önerisi alamazsınız.
-          </p>
-        )}
-      </div>
-
-      {/* Önerilen İşler */}
-      {cvUploaded && (
-        <div className="bg-white p-6 rounded shadow">
-          <h3 className="text-lg font-semibold mb-4">Sana Uygun İşler</h3>
-          <div className="space-y-4">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="border rounded p-4 hover:shadow transition"
-              >
-                <h4 className="font-bold text-blue-600">{job.title}</h4>
-                <p className="text-sm text-gray-600">{job.company} – {job.location}</p>
-                <p className="text-sm mt-1">{job.type} | {job.salary}</p>
-                <button className="mt-3 text-sm text-blue-500 hover:underline">
-                  Detayları Gör
-                </button>
-              </div>
-            ))}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white">
+        {/* Floating Nav */}
+        <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
+          <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
+            <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
+            <div className="flex gap-4 items-center">
+              <a href="/login" className="text-white hover:text-yellow-400 transition py-1 px-3 flex items-center">Giriş</a>
+              <a href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1.5 rounded-full font-medium hover:bg-yellow-300 transition flex items-center">Kayıt Ol</a>
+            </div>
           </div>
+        </nav>
+
+        <div className="container mx-auto pt-36 pb-24 px-6 md:px-12 relative z-10">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent mb-8">
+            Hoş geldin, {currentUser?.name}
+          </h2>
+
+          {/* CV Upload */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 mb-8">
+            <h3 className="text-2xl font-semibold text-yellow-400 mb-4">CV Yükle</h3>
+            <input
+              type="file"
+              onChange={handleCVUpload}
+              className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            />
+            {!cvUploaded && (
+              <p className="text-red-400 text-sm mt-2">
+                Lütfen CV’nizi yükleyin. Yüklemeden iş önerisi alamazsınız.
+              </p>
+            )}
+          </div>
+
+          {/* Önerilen İşler */}
+          {cvUploaded && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+              <h3 className="text-2xl font-semibold text-yellow-400 mb-4">Sana Uygun İşler</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                {jobs.map((job) => (
+                  <div key={job.id} className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 group hover:shadow-xl transition-all">
+                    <h4 className="text-xl font-bold text-yellow-400 mb-2">{job.title}</h4>
+                    <p className="text-blue-200">{job.company} – {job.location}</p>
+                    <p className="text-blue-200 mt-2">{job.type} | {job.salary}</p>
+                    <button className="mt-4 text-yellow-400 font-semibold hover:underline">Detayları Gör</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }
