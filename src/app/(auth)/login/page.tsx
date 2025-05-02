@@ -1,10 +1,10 @@
 // src/app/(auth)/login/page.tsx
-
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -12,86 +12,78 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState<'job-seeker' | 'employer'>('job-seeker');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(email, password, userType);
+    const success = login(email, password);
     if (success) {
-      // Kullanıcı tipine göre farklı dashboard'a yönlendir
-      if (userType === 'job-seeker') {
-        router.push('/job-seeker-dashboard');
-      } else {
-        router.push('/employer-dashboard');
-      }
+      router.push('/dashboard');
     } else {
       setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-8 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Giriş Yap</h2>
-
-      {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1">Email</label>
-          <input
-            type="email"
-            className="w-full border rounded px-3 py-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1">Şifre</label>
-          <input
-            type="password"
-            className="w-full border rounded px-3 py-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1">Kullanıcı Tipi</label>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600">
+      {/* Floating Nav */}
+      <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
+        <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
+          <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
           <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="userType"
-                value="job-seeker"
-                checked={userType === 'job-seeker'}
-                onChange={() => setUserType('job-seeker')}
-              />
-              <span className="ml-2">İş Arayan</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="userType"
-                value="employer"
-                checked={userType === 'employer'}
-                onChange={() => setUserType('employer')}
-              />
-              <span className="ml-2">İşveren</span>
-            </label>
+            <Link href="/login" className="text-white hover:text-yellow-400 transition">Giriş</Link>
+            <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1 rounded-full font-medium hover:bg-yellow-300 transition">Kayıt Ol</Link>
           </div>
         </div>
+      </nav>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-        >
-          Giriş Yap
-        </button>
-      </form>
+      <div className="container mx-auto pt-36 pb-24 px-6 md:px-12">
+        <div className="max-w-md mx-auto bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+          <h2 className="text-3xl font-bold mb-8 text-center bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent">
+            Giriş Yap
+          </h2>
+
+          {error && <p className="text-red-400 mb-4 text-sm text-center">{error}</p>}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-blue-100 mb-2">Email</label>
+              <input
+                type="email"
+                className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-blue-100 mb-2">Şifre</label>
+              <input
+                type="password"
+                className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-yellow-400 to-yellow-300 text-indigo-900 font-semibold py-3 rounded-lg hover:from-yellow-300 hover:to-yellow-200 transition duration-300 shadow-lg shadow-yellow-500/20"
+            >
+              Giriş Yap
+            </button>
+          </form>
+
+          <p className="text-center mt-6 text-blue-200">
+            Hesabınız yok mu?{' '}
+            <Link href="/register" className="text-yellow-400 hover:text-yellow-300 transition">
+              Kayıt Ol
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

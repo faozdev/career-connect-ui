@@ -10,7 +10,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
           <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
           <div className="flex gap-4">
-            <Link href="/login" className="hover:text-yellow-400 transition">Giriş</Link>
+            <Link href="/login" className="text-white hover:text-yellow-400 transition">Giriş</Link>
             <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1 rounded-full font-medium hover:bg-yellow-300 transition">Kayıt Ol</Link>
           </div>
         </div>

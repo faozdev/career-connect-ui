@@ -1,5 +1,4 @@
 // src/context/AuthContext.tsx
-
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -11,20 +10,14 @@ export interface User {
   name: string;
   email: string;
   type: UserType;
+  password?: string; 
 }
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (email: string, password: string, type: UserType) => boolean;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
 }
-
-const dummyUsers: User[] = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', type: 'job-seeker' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', type: 'job-seeker' },
-  { id: 3, name: 'Acme Inc.', email: 'jobs@acme.com', type: 'employer' },
-  { id: 4, name: 'Tech Solutions', email: 'careers@techsolutions.com', type: 'employer' }
-];
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -32,26 +25,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Optional: persist login with localStorage
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     }
   }, []);
 
-  const login = (email: string, password: string, type: UserType): boolean => {
-    // Şimdilik şifre kontrolü yok, dummy data üzerinden eşleşme
-    const user = dummyUsers.find(
-      (u) => u.email === email && u.type === type
+  const login = (email: string, password: string): boolean => {
+    // LocalStorage'dan kayıtlı kullanıcıları al
+    const storedUsers = JSON.parse(localStorage.getItem('dummyUsers') || '[]');
+    
+    // E-posta ve şifre eşleşmesini kontrol et
+    const user = storedUsers.find(
+      (u: User) => u.email === email && u.password === password
     );
 
     if (user) {
-      setCurrentUser(user);
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      const { password, ...userWithoutPassword } = user;
+      setCurrentUser(userWithoutPassword);
+      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
       return true;
-    } else {
-      return false;
     }
+    return false;
   };
 
   const logout = () => {
@@ -64,4 +59,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
