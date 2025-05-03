@@ -131,7 +131,12 @@ export default function EmployerDashboard() {
                     <p className="text-blue-200">{job.location} | {job.type}</p>
                     <p className="text-blue-200 mt-2">{job.salary}</p>
                     <p className="text-blue-200 mt-2">Başvuran Adaylar: {job.applicants}</p>
-                    <button className="mt-4 text-yellow-400 font-semibold hover:underline">Adayları Gör</button>
+                    <button
+                      onClick={() => router.push(`/employer-dashboard/applicants/${job.id}`)}
+                      className="mt-4 text-yellow-400 font-semibold hover:underline"
+                    >
+                      Adayları Gör
+                    </button>
                   </div>
                 ))}
               </div>

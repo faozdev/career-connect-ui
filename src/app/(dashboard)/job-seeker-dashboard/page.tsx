@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
+import { MdClose } from 'react-icons/md';
 
 interface Job {
   id: number;
@@ -21,6 +22,9 @@ export default function JobSeekerDashboard() {
   const { currentUser, logout } = useAuth();
   const router = useRouter();
   const [cvUploaded, setCvUploaded] = useState(false);
+  const [cvFileName, setCvFileName] = useState<string | null>(null);
+  const [cvSectionVisible, setCvSectionVisible] = useState(true);
+  const [editingCV, setEditingCV] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
 
   useEffect(() => {
@@ -53,7 +57,10 @@ export default function JobSeekerDashboard() {
 
   const handleCVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setCvFileName(file.name);
       setCvUploaded(true);
+      setEditingCV(false);
     }
   };
 
@@ -74,15 +81,12 @@ export default function JobSeekerDashboard() {
           <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
             <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
             <div className="flex gap-4 items-center">
-              {/* Messages Link */}
               <Link href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
                 <FiMessageCircle className="mr-1" /> Mesajlar
               </Link>
-              {/* User Name */}
               <span className="px-3 py-1 rounded-full bg-white/20">
                 {currentUser?.name}
               </span>
-              {/* Logout Button */}
               <button
                 onClick={handleLogout}
                 className="flex items-center text-red-400 hover:text-red-200 transition"
@@ -98,22 +102,64 @@ export default function JobSeekerDashboard() {
             Hoş geldin, {currentUser?.name}
           </h2>
 
-          {/* CV Upload */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 mb-8">
-            <h3 className="text-2xl font-semibold text-yellow-400 mb-4">CV Yükle</h3>
-            <input
-              type="file"
-              onChange={handleCVUpload}
-              className="w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-            {!cvUploaded && (
-              <p className="text-red-400 text-sm mt-2">
-                Lütfen CV’nizi yükleyin. Yüklemeden iş önerisi alamazsınız.
-              </p>
-            )}
-          </div>
+          {/* CV Upload Section */}
+          {cvSectionVisible && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 mb-8 flex justify-between items-center flex-wrap gap-4">
+              {!cvUploaded || editingCV ? (
+                <div className="w-full">
+                  <h3 className="text-2xl font-semibold text-yellow-400 mb-4">CV Yükle</h3>
+                  <div className="flex items-center gap-4">
+                    <label
+                      htmlFor="cv-upload"
+                      className="cursor-pointer inline-block bg-yellow-400 text-blue-900 font-semibold px-6 py-3 rounded-xl hover:bg-yellow-300 transition"
+                    >
+                      Dosya Seç
+                    </label>
+                    <span className="text-white text-sm">
+                      {cvFileName ? cvFileName : "Henüz dosya seçilmedi"}
+                    </span>
+                  </div>
+                  <input
+                    id="cv-upload"
+                    type="file"
+                    onChange={handleCVUpload}
+                    className="hidden"
+                  />
+                  {!cvUploaded && (
+                    <div className="mt-4 bg-red-400/10 border border-red-400/30 text-red-300 p-4 rounded-xl text-sm flex items-start gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 4.354a4.002 4.002 0 012.828 6.827l-.83.828A3.978 3.978 0 0012 16.646a3.978 3.978 0 01-2.828-1.163l-.83-.828A4.002 4.002 0 0112 4.354z" />
+                      </svg>
+                      <span>Lütfen CV’nizi yükleyin. Yüklemeden iş önerisi alamazsınız.</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex justify-between items-center w-full">
+                  <span className="text-white text-sm font-medium">
+                    📄 {cvFileName}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setEditingCV(true)}
+                      className="text-yellow-400 hover:underline text-sm"
+                    >
+                      Düzenle
+                    </button>
+                    <button
+                      onClick={() => setCvSectionVisible(false)}
+                      className="text-red-400 hover:text-red-200 text-xl"
+                      aria-label="Kapat"
+                    >
+                      <MdClose />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Önerilen İşler */}
+          {/* Job Suggestions */}
           {cvUploaded && (
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
               <h3 className="text-2xl font-semibold text-yellow-400 mb-4">Sana Uygun İşler</h3>
@@ -124,11 +170,11 @@ export default function JobSeekerDashboard() {
                     <p className="text-blue-200">{job.company} – {job.location}</p>
                     <p className="text-blue-200 mt-2">{job.type} | {job.salary}</p>
                     <Link
-                      href={`/jobs/job-details?jobId=${job.id}`}
-                      className="mt-4 inline-block text-yellow-400 font-semibold hover:underline"
-                    >
-                      Detayları Gör
-                    </Link>
+                    href={`/job-seeker-dashboard/job-details/${job.id}`}
+                    className="mt-4 inline-block text-yellow-400 font-semibold hover:underline"
+                  >
+                    Detayları Gör
+                  </Link>
                   </div>
                 ))}
               </div>
