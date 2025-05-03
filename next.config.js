@@ -4,7 +4,7 @@ const nextConfig = {
     // Turbopack'i devre dışı bırakıp standart webpack'e dönüş
     experimental: {
       // turbo: false,
-      // appDir: true
+      appDir: true
     }
   };
   

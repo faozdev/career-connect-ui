@@ -2,25 +2,17 @@
 
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
-
-interface JobForm {
-  title: string;
-  location: string;
-  type: string;
-  salary: string;
-  description: string;
-  requirements: string;
-  skills: string;
-}
+import { useJob, JobForm } from '@/context/JobContext';
 
 export default function PostJobPage() {
   const { currentUser, logout } = useAuth();
+  const { postJob } = useJob();
   const router = useRouter();
 
   const [form, setForm] = useState<JobForm>({
@@ -57,11 +49,16 @@ export default function PostJobPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ ...form, postedBy: currentUser?.name });
-    alert('İş ilanı başarıyla eklendi!');
-    router.push('/dashboard');
+    try {
+      await postJob({ ...form, postedBy: currentUser?.name });
+      alert('İş ilanı başarıyla eklendi!');
+      router.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error posting job:', err);
+      alert(err.message || 'İlan ekleme sırasında bir hata oluştu');
+    }
   };
 
   return (
@@ -219,3 +216,6 @@ export default function PostJobPage() {
     </ProtectedRoute>
   );
 }
+
+
+

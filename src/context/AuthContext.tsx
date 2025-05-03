@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         { email, password }
       );
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('userId', String(res.data.user.id));
       setCurrentUser(res.data.user);
       return true;
     } catch (err: any) {
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }>('/auth/register', payload);
   
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('userId', String(res.data.user.id));
       setCurrentUser(res.data.user);
       return { success: true };
     } catch (err: any) {

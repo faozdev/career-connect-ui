@@ -1,8 +1,9 @@
-// src/app/layout.tsx
+'use client';
 
 import '../styles/globals.css';
-import { ReactNode } from 'react';
-import { AuthProvider } from '../context/AuthContext';
+import React, { ReactNode } from 'react';
+import { AuthProvider } from '@/context/AuthContext';
+import { JobProvider } from '@/context/JobContext';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,7 +11,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head />
       <body>
         <AuthProvider>
-          {children}
+          <JobProvider>
+            {children}
+          </JobProvider>
         </AuthProvider>
       </body>
     </html>

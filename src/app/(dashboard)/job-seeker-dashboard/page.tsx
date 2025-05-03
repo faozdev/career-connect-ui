@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import Link from 'next/link';
 import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
 
 interface Job {
@@ -74,9 +75,9 @@ export default function JobSeekerDashboard() {
             <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
             <div className="flex gap-4 items-center">
               {/* Messages Link */}
-              <a href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
+              <Link href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
                 <FiMessageCircle className="mr-1" /> Mesajlar
-              </a>
+              </Link>
               {/* User Name */}
               <span className="px-3 py-1 rounded-full bg-white/20">
                 {currentUser?.name}
@@ -122,7 +123,12 @@ export default function JobSeekerDashboard() {
                     <h4 className="text-xl font-bold text-yellow-400 mb-2">{job.title}</h4>
                     <p className="text-blue-200">{job.company} – {job.location}</p>
                     <p className="text-blue-200 mt-2">{job.type} | {job.salary}</p>
-                    <button className="mt-4 text-yellow-400 font-semibold hover:underline">Detayları Gör</button>
+                    <Link
+                      href={`/jobs/job-details?jobId=${job.id}`}
+                      className="mt-4 inline-block text-yellow-400 font-semibold hover:underline"
+                    >
+                      Detayları Gör
+                    </Link>
                   </div>
                 ))}
               </div>
