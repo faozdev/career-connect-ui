@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
+import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
 
 interface Job {
   id: number;
@@ -17,7 +18,7 @@ interface Job {
 }
 
 export default function EmployerDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
 
@@ -43,7 +44,23 @@ export default function EmployerDashboard() {
         type: 'Part-time',
         salary: '20.000₺ - 25.000₺',
         applicants: 2,
-      }
+      },
+      {
+        id: 3,
+        title: 'UX Researcher',
+        location: 'Ankara',
+        type: 'Contract',
+        salary: '15.000₺ - 18.000₺',
+        applicants: 1,
+      },
+      {
+        id: 4,
+        title: 'DevOps Engineer',
+        location: 'Remote',
+        type: 'Full-time',
+        salary: '50.000₺ - 60.000₺',
+        applicants: 3,
+      },
     ];
 
     setJobs(dummyJobs);
@@ -51,6 +68,15 @@ export default function EmployerDashboard() {
 
   const handlePostJob = () => {
     router.push('/post-job');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -61,8 +87,21 @@ export default function EmployerDashboard() {
           <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
             <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
             <div className="flex gap-4 items-center">
-              <Link href="/login" className="text-white hover:text-yellow-400 transition py-1 px-3 flex items-center">Giriş</Link>
-              <Link href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1.5 rounded-full font-medium hover:bg-yellow-300 transition flex items-center">Kayıt Ol</Link>
+              {/* Messages Link */}
+              <Link href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
+                <FiMessageCircle className="mr-1" /> Mesajlar
+              </Link>
+              {/* User Name */}
+              <span className="px-3 py-1 rounded-full bg-white/20">
+                {currentUser?.name}
+              </span>
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center text-red-400 hover:text-red-200 transition"
+              >
+                <FiLogOut className="mr-1" /> Çıkış
+              </button>
             </div>
           </div>
         </nav>

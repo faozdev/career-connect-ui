@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
 
 interface Job {
   id: number;
@@ -16,7 +17,7 @@ interface Job {
 }
 
 export default function JobSeekerDashboard() {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const router = useRouter();
   const [cvUploaded, setCvUploaded] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -43,7 +44,7 @@ export default function JobSeekerDashboard() {
         location: 'İstanbul',
         type: 'Part-time',
         salary: '15.000₺ - 20.000₺',
-      }
+      },
     ];
 
     setJobs(dummyJobs);
@@ -55,6 +56,15 @@ export default function JobSeekerDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white">
@@ -63,8 +73,21 @@ export default function JobSeekerDashboard() {
           <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
             <div className="text-xl font-bold">CareerConnect<span className="text-yellow-400">.AI</span></div>
             <div className="flex gap-4 items-center">
-              <a href="/login" className="text-white hover:text-yellow-400 transition py-1 px-3 flex items-center">Giriş</a>
-              <a href="/register" className="bg-yellow-400 text-indigo-900 px-5 py-1.5 rounded-full font-medium hover:bg-yellow-300 transition flex items-center">Kayıt Ol</a>
+              {/* Messages Link */}
+              <a href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
+                <FiMessageCircle className="mr-1" /> Mesajlar
+              </a>
+              {/* User Name */}
+              <span className="px-3 py-1 rounded-full bg-white/20">
+                {currentUser?.name}
+              </span>
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center text-red-400 hover:text-red-200 transition"
+              >
+                <FiLogOut className="mr-1" /> Çıkış
+              </button>
             </div>
           </div>
         </nav>
