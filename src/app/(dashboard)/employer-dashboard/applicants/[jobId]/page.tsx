@@ -18,8 +18,8 @@ interface Applicant {
   id: number;
   name: string;
   email: string;
-  experience?: string;
-  matchRate?: number;
+  experience: string;
+  matchRate: number;
 }
 
 export default function ApplicantsPage() {
@@ -40,34 +40,53 @@ export default function ApplicantsPage() {
       try {
         const token = localStorage.getItem('token');
 
-        // 1. Başvuranların ID listesini al
         const res = await api.get<{ seekerId: number }[]>(`/job/${jobId}/applicants`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        // 2. 0 olmayan ID'ler için aday bilgilerini topla
-        const applicants = await Promise.all(
+        const applicantList = await Promise.all(
           res.data
             .filter(app => app.seekerId !== 0)
             .map(async ({ seekerId }) => {
-              const userRes = await api.get<{ id: number; name: string; email: string }>(`/auth/profile/${seekerId}`, {
+              try {
+                const userRes = await api.get<{ id: number; name: string; email: string }>(
+                  `/auth/profile/${seekerId}`,
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
 
-                headers: { Authorization: `Bearer ${token}` },
-              });
+                const cvRes = await api.get<{ id: number }[]>(`/CV/user/${seekerId}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
 
-              return {
-                id: seekerId,
-                name: userRes.data.name,
-                email: userRes.data.email,
-                experience: 'Deneyim bilgisi henüz eklenmedi.',
-                matchRate: Math.floor(Math.random() * 21) + 80,
-              };
+                if (!cvRes.data.length) return null;
+                const cvId = cvRes.data[0].id;
+
+                const matchRes = await api.get<{ job: { id: number }; score: number }[]>(
+                  `/CV/match-jobs/${cvId}`,
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                const jobMatch = matchRes.data.find(m => m.job.id === Number(jobId));
+                const score = jobMatch?.score ?? 0;
+
+                if (score === 0) return null;
+
+                return {
+                  id: seekerId,
+                  name: userRes.data.name,
+                  email: userRes.data.email,
+                  experience: 'Deneyim bilgisi henüz eklenmedi.',
+                  matchRate: score,
+                };
+              } catch (err) {
+                console.warn(`Başvuran ${seekerId} yüklenemedi:`, err);
+                return null;
+              }
             })
         );
 
-        setApplicants(applicants);
+        setApplicants(applicantList.filter((a): a is Applicant => a !== null));
 
-        // 3. İş başlığını getir
         const jobRes = await api.get<Job>(`/job/${jobId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -91,32 +110,32 @@ export default function ApplicantsPage() {
 
   const handleOffer = async (applicant: Applicant) => {
     if (!currentUser) return;
-  
+
     const payload = {
       senderId: String(currentUser.id),
       receiverId: String(applicant.id),
       content: `Sayın ${applicant.name}, başvurunuz olumlu değerlendirilmiştir. Sizi ekibimizde görmek isteriz.`,
     };
-  
+
     try {
       await api.post('/message/send', payload);
       alert(`${applicant.name} adlı adaya otomatik teklif mesajı gönderildi!`);
     } catch (err) {
-      console.error('Otomatik teklif mesajı gönderilemedi:', err);
+      console.error('Teklif mesajı gönderilemedi:', err);
     }
   };
-  
-  
+
   const handleMessage = async (applicantId: number) => {
     try {
-      const res = await api.get<{ id: number; name: string; email: string }>(`/auth/profile/${applicantId}`);
+      const res = await api.get<{ id: number; name: string; email: string }>(
+        `/auth/profile/${applicantId}`
+      );
       const userName = res.data.name;
       router.push(`/message?user=${userName}&id=${applicantId}`);
     } catch (error) {
       console.error('Kullanıcı profili alınamadı:', error);
     }
   };
-  
 
   return (
     <ProtectedRoute>
@@ -128,7 +147,10 @@ export default function ApplicantsPage() {
               CareerConnect<span className="text-yellow-400">.AI</span>
             </div>
             <div className="flex gap-4 items-center">
-              <Link href="/messages" className="text-white hover:text-yellow-400 transition flex items-center">
+              <Link
+                href="/messages"
+                className="text-white hover:text-yellow-400 transition flex items-center"
+              >
                 <FiMessageCircle className="mr-1" /> Mesajlar
               </Link>
               <Link
@@ -165,7 +187,10 @@ export default function ApplicantsPage() {
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
               {applicants.map((applicant) => (
-                <div key={applicant.id} className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 hover:shadow-xl transition-all flex flex-col justify-between">
+                <div
+                  key={applicant.id}
+                  className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 hover:shadow-xl transition-all flex flex-col justify-between"
+                >
                   <div>
                     <h4 className="text-xl font-bold text-yellow-400 mb-2">{applicant.name}</h4>
                     <p className="text-blue-200">{applicant.email}</p>
@@ -173,13 +198,13 @@ export default function ApplicantsPage() {
                     <p className="text-blue-200 mt-1 mb-4">Uyum Oranı: %{applicant.matchRate}</p>
                   </div>
                   <div className="flex gap-4 mt-auto">
-                  <button
-                    onClick={() => handleOffer(applicant)}
-                    className="flex-1 bg-yellow-400 text-indigo-900 font-semibold py-2 rounded-full hover:bg-yellow-300 transition"
-                  >
-                    Teklif Gönder
-                  </button>
-                  <button
+                    <button
+                      onClick={() => handleOffer(applicant)}
+                      className="flex-1 bg-yellow-400 text-indigo-900 font-semibold py-2 rounded-full hover:bg-yellow-300 transition"
+                    >
+                      Teklif Gönder
+                    </button>
+                    <button
                       onClick={() => handleMessage(applicant.id)}
                       className="flex-1 bg-white/20 text-white font-semibold py-2 rounded-full hover:bg-white/30 transition"
                     >

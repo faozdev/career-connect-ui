@@ -9,6 +9,13 @@ import Link from 'next/link';
 import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
 import api from '@/lib/api';
 
+interface Applicant {
+  id: number;
+  jobId: number;
+  seekerId: number;
+  appliedAt: string;
+}
+
 interface Job {
   id: number;
   title: string;
@@ -29,7 +36,7 @@ export default function EmployerDashboard() {
       router.push('/login');
       return;
     }
-
+  
     const fetchJobs = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -38,16 +45,44 @@ export default function EmployerDashboard() {
             Authorization: `Bearer ${token}`,
           },
         });
-        setJobs(res.data);
+  
+        // Tüm iş ilanları için gerçek başvuru sayısını al
+        const jobsWithApplicants = await Promise.all(
+          res.data.map(async (job) => {
+            try {
+              const applicantsRes = await api.get<Applicant[]>(`/job/${job.id}/applicants`, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              });
+              const validApplicants = applicantsRes.data.filter(
+                (a: any) => a.seekerId !== 0
+              );
+              return {
+                ...job,
+                applicants: validApplicants,
+              };
+            } catch (err) {
+              console.error(`Adaylar alınamadı (jobId: ${job.id}):`, err);
+              return {
+                ...job,
+                applicants: [],
+              };
+            }
+          })
+        );
+  
+        setJobs(jobsWithApplicants);
       } catch (err) {
         console.error('İlanlar alınamadı:', err);
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchJobs();
   }, [currentUser, router]);
+  
 
   const handlePostJob = () => {
     router.push('/post-job');
