@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Link from 'next/link';
 import { FiMessageCircle, FiLogOut } from 'react-icons/fi';
+import api from '@/lib/api';
 
 interface Job {
   id: number;
@@ -17,8 +18,8 @@ interface Applicant {
   id: number;
   name: string;
   email: string;
-  experience: string;
-  matchRate: number;
+  experience?: string;
+  matchRate?: number;
 }
 
 export default function ApplicantsPage() {
@@ -35,41 +36,48 @@ export default function ApplicantsPage() {
       return;
     }
 
-    const jobs: Job[] = [
-      { id: 1, title: 'Full Stack Developer' },
-      { id: 2, title: 'Data Analyst' },
-      { id: 3, title: 'UX Researcher' },
-      { id: 4, title: 'DevOps Engineer' },
-    ];
+    const fetchApplicants = async () => {
+      try {
+        const token = localStorage.getItem('token');
 
-    const job = jobs.find((j) => j.id === Number(jobId));
-    if (job) setJobTitle(job.title);
+        // 1. Başvuranların ID listesini al
+        const res = await api.get<{ seekerId: number }[]>(`/job/${jobId}/applicants`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-    const dummyApplicants: Applicant[] = [
-      {
-        id: 1,
-        name: 'Ayşe Yılmaz',
-        email: 'ayse@example.com',
-        experience: '3 yıl frontend geliştirme',
-        matchRate: 92,
-      },
-      {
-        id: 2,
-        name: 'Mehmet Demir',
-        email: 'mehmet@example.com',
-        experience: '2 yıl backend geliştirme',
-        matchRate: 87,
-      },
-      {
-        id: 3,
-        name: 'Zeynep Kara',
-        email: 'zeynep@example.com',
-        experience: '4 yıl fullstack deneyimi',
-        matchRate: 95,
-      },
-    ];
+        // 2. 0 olmayan ID'ler için aday bilgilerini topla
+        const applicants = await Promise.all(
+          res.data
+            .filter(app => app.seekerId !== 0)
+            .map(async ({ seekerId }) => {
+              const userRes = await api.get<{ id: number; name: string; email: string }>(`/auth/profile/${seekerId}`, {
 
-    setApplicants(dummyApplicants);
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              return {
+                id: seekerId,
+                name: userRes.data.name,
+                email: userRes.data.email,
+                experience: 'Deneyim bilgisi henüz eklenmedi.',
+                matchRate: Math.floor(Math.random() * 21) + 80,
+              };
+            })
+        );
+
+        setApplicants(applicants);
+
+        // 3. İş başlığını getir
+        const jobRes = await api.get<Job>(`/job/${jobId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setJobTitle(jobRes.data.title);
+      } catch (error) {
+        console.error('Aday verileri alınamadı:', error);
+      }
+    };
+
+    fetchApplicants();
   }, [jobId, currentUser, router]);
 
   const handleLogout = async () => {

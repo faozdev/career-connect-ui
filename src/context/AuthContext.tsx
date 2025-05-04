@@ -3,7 +3,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
-import axios from 'axios';
 
 export interface User {
   id: number;
@@ -14,6 +13,7 @@ export interface User {
 
 interface AuthContextType {
   currentUser: User | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (
     name: string,
@@ -28,25 +28,36 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // ✅ loading state eklendi
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      api.get<User>('/auth/profile')
-        .then(res => setCurrentUser(res.data))
-        .catch(() => logout());
-    }
+    const fetchUser = async () => {
+      const token = localStorage.getItem('token');
+  
+      if (token) {
+        try {
+          const res = await api.get<User>('/auth/profile');
+          setCurrentUser(res.data);
+        } catch (err) {
+          logout();
+        } finally {
+          setLoading(false); // ✅ loading her durumda biter
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+  
+    fetchUser();
   }, []);
+  
 
   const login = async (
     email: string,
     password: string
   ): Promise<boolean> => {
     try {
-      const res = await api.post<{ token: string; user: User }>(
-        '/auth/login',
-        { email, password }
-      );
+      const res = await api.post<{ token: string; user: User }>('/auth/login', { email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('userId', String(res.data.user.id));
       setCurrentUser(res.data.user);
@@ -63,22 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     password: string,
     type: 'job-seeker' | 'employer'
   ): Promise<{ success: boolean; message?: string }> => {
-    // userType 0 = JOB_SEEKER, 1 = EMPLOYER
     const numericType = type === 'job-seeker' ? 0 : 1;
-  
-    const payload = {
-      name,         // string
-      email,        // string
-      password,     // string
-      userType: numericType  // 0 veya 1
-    };
-  
+    const payload = { name, email, password, userType: numericType };
+
     try {
-      const res = await api.post<{
-        token: string;
-        user: User;
-      }>('/auth/register', payload);
-  
+      const res = await api.post<{ token: string; user: User }>('/auth/register', payload);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('userId', String(res.data.user.id));
       setCurrentUser(res.data.user);
@@ -96,17 +96,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('userId');
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, register, logout }}>
+    <AuthContext.Provider value={{ currentUser, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be within AuthProvider');
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 };

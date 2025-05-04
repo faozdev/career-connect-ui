@@ -4,6 +4,7 @@ import '../styles/globals.css';
 import React, { ReactNode } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { JobProvider } from '@/context/JobContext';
+import { RelevantJobsProvider } from '@/context/RelevantJobsContext';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <AuthProvider>
           <JobProvider>
-            {children}
+          <RelevantJobsProvider>
+              {children}
+            </RelevantJobsProvider>
           </JobProvider>
         </AuthProvider>
       </body>

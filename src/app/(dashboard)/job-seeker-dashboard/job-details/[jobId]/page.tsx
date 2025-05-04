@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 import { FiLogOut } from 'react-icons/fi';
+import { useRelevantJobs } from '@/context/RelevantJobsContext';
+import api from '@/lib/api'; 
 
 interface Job {
   id: number;
@@ -15,13 +17,23 @@ interface Job {
   location: string;
   salary: string;
   type: string;
-  requirements: string[];
+  requirements: string | string[];
+  skills?: string[];
+  applicants?: any[];
 }
-
+const getReadableType = (type: string | number) => {
+  return type === 0 || type === '0'
+    ? 'Full-time'
+    : type === 1 || type === '1'
+    ? 'Part-time'
+    : String(type);
+};
 export default function JobDetailsPage() {
   const { jobId } = useParams();
   const router = useRouter();
   const { currentUser, logout } = useAuth();
+  const { getJobById } = useRelevantJobs();
+
   const [job, setJob] = useState<Job | null>(null);
   const [applied, setApplied] = useState(false);
 
@@ -31,32 +43,16 @@ export default function JobDetailsPage() {
       return;
     }
 
-    const dummyJobs: Job[] = [
-      {
-        id: 1,
-        title: 'Frontend Developer',
-        description: 'React ve Tailwind ile modern web uygulamaları geliştirmek.',
-        company: 'Acme Inc.',
-        location: 'Remote',
-        salary: '70.000₺ - 90.000₺',
-        type: 'Full-time',
-        requirements: ['3+ yıl deneyim', 'React.js bilgisi', 'Responsive tasarım'],
-      },
-      {
-        id: 2,
-        title: 'UX Designer',
-        description: 'Kullanıcı deneyimini artırmaya yönelik tasarım süreçlerine katkı sağlamak.',
-        company: 'Tech Solutions',
-        location: 'İstanbul',
-        salary: '15.000₺ - 20.000₺',
-        type: 'Part-time',
-        requirements: ['Figma bilgisi', 'Kullanıcı araştırması deneyimi'],
-      },
-    ];
+    const fetchJob = async () => {
+      const result = await getJobById(Number(jobId));
+      if (result) {
+        setJob(result);
+      }
+    };
+    
 
-    const foundJob = dummyJobs.find(j => j.id === Number(jobId));
-    if (foundJob) setJob(foundJob);
-  }, [jobId, currentUser, router]);
+    fetchJob();
+  }, [jobId, currentUser, getJobById, router]);
 
   const handleLogout = async () => {
     try {
@@ -67,25 +63,31 @@ export default function JobDetailsPage() {
     }
   };
 
-  const handleApply = () => {
-    setApplied(true);
-    // Gerçek sistemde burada başvuru API isteği yapılır
-    alert('Başvurunuz başarıyla alınmıştır!');
+  const handleApply = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await api.post(`/job/${jobId}/apply`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setApplied(true);
+      alert('Başvurunuz başarıyla alınmıştır!');
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || 'Başvuru sırasında hata oluştu.');
+    }
   };
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white">
-        {/* Navbar */}
         <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
           <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
             <div className="text-xl font-bold">
               CareerConnect<span className="text-yellow-400">.AI</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="px-3 py-1 rounded-full bg-white/20">
-                {currentUser?.name}
-              </span>
+              <span className="px-3 py-1 rounded-full bg-white/20">{currentUser?.name}</span>
               <button
                 onClick={handleLogout}
                 className="flex items-center text-red-400 hover:text-red-200 transition"
@@ -105,22 +107,24 @@ export default function JobDetailsPage() {
           </button>
 
           {!job ? (
-            <p className="text-blue-200">İlan bilgisi bulunamadı.</p>
+            <p className="text-blue-200">İlan bilgisi yükleniyor...</p>
           ) : (
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
               <h2 className="text-3xl font-bold text-yellow-400 mb-2">{job.title}</h2>
               <p className="text-blue-200 mb-1">{job.company} – {job.location}</p>
-              <p className="text-blue-200 mb-4">{job.type} | {job.salary}</p>
+              <p className="text-blue-200 mb-4">{getReadableType(job.type)} | {job.salary}</p>
               <p className="mb-6 text-white/90 leading-relaxed">{job.description}</p>
 
               <h3 className="text-xl font-semibold text-yellow-300 mb-3">Gereksinimler</h3>
-              <ul className="list-disc list-inside text-white/90 space-y-1 mb-8">
-                {job.requirements.map((req, i) => (
-                  <li key={i}>{req}</li>
-                ))}
-              </ul>
-
-              {/* Başvur butonu */}
+              {Array.isArray(job.requirements) ? (
+                <ul className="list-disc list-inside text-white/90 space-y-1 mb-8">
+                  {job.requirements.map((req: string, i: number) => (
+                    <li key={i}>{req}</li>
+                  ))}
+                </ul>
+                ) : (
+                  <p className="text-white/90 mb-8">{job.requirements}</p>
+                )}
               {!applied ? (
                 <button
                   onClick={handleApply}

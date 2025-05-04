@@ -7,19 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { FiArrowLeft } from 'react-icons/fi';
 import { useEffect, useState } from 'react';
+import { useRelevantJobs } from '@/context/RelevantJobsContext';
+import type { Job } from '@/context/RelevantJobsContext';
 
-interface Job {
-  id: number;
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-  salary: string;
-  description: string;
-  requirements: string;
-  skills: string;
-  applicants: number[];
-}
+const { getJobById } = useRelevantJobs();
 
 export default function JobDetailsPage() {
   const { currentUser } = useAuth();
@@ -30,24 +21,20 @@ export default function JobDetailsPage() {
   const [hasApplied, setHasApplied] = useState(false);
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    // TODO: fetch real job by jobId
-    const dummy: Job = {
-      id: jobId,
-      title: 'Frontend Developer',
-      company: 'Acme Inc.',
-      location: 'Remote',
-      type: 'Full-time',
-      salary: '80.000₺ - 100.000₺',
-      description: 'React.js ile arayüz geliştirecek ekip arkadaşı arıyoruz.',
-      requirements: '2+ yıl frontend deneyimi, TypeScript bilgisi.',
-      skills: 'React, TypeScript, CSS',
-      applicants: [2],
+    if (!currentUser) {
+      router.push('/login');
+      return;
+    }
+  
+    const fetchJob = async () => {
+      const result = await getJobById(Number(jobId)); // ✅ ID ile veri çek
+      if (result) {
+        setJob(result);
+      }
     };
-    setJob(dummy);
-    setHasApplied(currentUser && dummy.applicants.includes(currentUser.id));
-  }, [currentUser, jobId]);
+  
+    fetchJob();
+  }, [jobId, currentUser, getJobById, router]);
 
   const handleApply = () => {
     if (!currentUser) {
@@ -123,9 +110,9 @@ export default function JobDetailsPage() {
               <div className="mt-8">
                 <h3 className="text-lg font-semibold text-white mb-2">Başvuran Adaylar</h3>
                 <ul className="list-disc list-inside text-blue-100">
-                  {job.applicants.map((id) => (
-                    <li key={id}>Aday ID: {id}</li>
-                  ))}
+                {(job.applicants || []).map((id) => (
+                  <li key={id}>Aday ID: {id}</li>
+                ))}
                 </ul>
               </div>
             )}
