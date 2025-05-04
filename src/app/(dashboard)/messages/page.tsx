@@ -1,24 +1,40 @@
 // src/app/(dashboard)/message/page.tsx
 'use client';
+
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { FiArrowLeft } from 'react-icons/fi';
+import api from '@/lib/api';
 
 interface Message {
   id: number;
-  sender: string;
-  subject: string;
+  senderId: string;
+  receiverId: string;
   content: string;
-  timestamp: string;
+  sentAt: string;
+}
+
+interface UserProfile {
+  id: number;
+  name: string;
 }
 
 export default function MessagePage() {
   const { currentUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const prefilledReceiverId = searchParams.get('id');
+  const prefilledReceiverName = searchParams.get('user');
+
+  const [receiverId, setReceiverId] = useState('');
+  const [receiverName, setReceiverName] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [newMessage, setNewMessage] = useState('');
 
   useEffect(() => {
     if (!currentUser) {
@@ -26,20 +42,70 @@ export default function MessagePage() {
       return;
     }
 
-    const dummyMessages: Message[] = [
-      { id: 1, sender: 'John Doe', subject: 'Job Application Inquiry', content: 'Hello, I am interested in the Full Stack Developer position...', timestamp: '2023-03-01 14:30' },
-      { id: 2, sender: 'Jane Smith', subject: 'Follow-up on Interview', content: 'Thank you for the interview opportunity. I wanted to follow up...', timestamp: '2023-03-02 10:15' },
-      { id: 3, sender: 'Michael Brown', subject: 'Request for More Information', content: 'Could you provide more details about the Data Analyst role?', timestamp: '2023-03-03 09:45' },
-    ];
+    if (prefilledReceiverId) {
+      setReceiverId(prefilledReceiverId);
+      setReceiverName(prefilledReceiverName || '');
+      setSelectedUserId(prefilledReceiverId);
+    }
 
-    setMessages(dummyMessages);
-    setSelectedMessage(dummyMessages[dummyMessages.length - 1]);
-  }, [currentUser, router]);
+    const fetchMessages = async () => {
+      try {
+        const res = await api.get<Message[]>(`/message/user/${currentUser.id}`);
+        setMessages(res.data);
+
+        // Fetch unique user IDs to map to names
+        const userIds = Array.from(
+          new Set(
+            res.data.flatMap((msg) => [msg.senderId, msg.receiverId])
+          )
+        ).filter((id) => id !== String(currentUser.id));
+
+        const nameMap: Record<string, string> = {};
+        for (const id of userIds) {
+          const profileRes = await api.get<UserProfile>(`/auth/profile/${id}`);
+          nameMap[id] = profileRes.data.name;
+        }
+        setUserMap(nameMap);
+      } catch (error) {
+        console.error('Mesajlar alınamadı:', error);
+      }
+    };
+
+    fetchMessages();
+  }, [currentUser, prefilledReceiverId, prefilledReceiverName, router]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !receiverId) return;
+
+    const payload = {
+      senderId: String(currentUser?.id),
+      receiverId,
+      content: newMessage,
+    };
+
+    try {
+      const res = await api.post<Message>('/message/send', payload);
+      setMessages([...messages, res.data]);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Mesaj gönderilemedi:', error);
+    }
+  };
+
+  const conversationUsers = Array.from(
+    new Set(
+      messages.map((msg) =>
+        msg.senderId === String(currentUser?.id)
+          ? msg.receiverId
+          : msg.senderId
+      )
+    )
+  );
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-blue-800 to-blue-600 text-white">
-        {/* Floating Nav */}
+        {/* Navbar */}
         <nav className="fixed top-6 left-0 right-0 z-50 px-6 md:px-12">
           <div className="max-w-6xl mx-auto bg-white/10 backdrop-blur-lg rounded-full py-3 px-6 flex justify-between items-center border border-white/20">
             <button onClick={() => router.back()} className="text-white hover:text-yellow-400 transition flex items-center">
@@ -51,51 +117,73 @@ export default function MessagePage() {
 
         <div className="container mx-auto pt-36 pb-24 px-6 md:px-12 relative z-10">
           <div className="flex h-[calc(100vh-12rem)] gap-6">
-            {/* Left: Message List */}
+            {/* Message List */}
             <div className="w-1/3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-4 overflow-y-auto">
-              {messages.map((msg) => (
+              {conversationUsers.map((userId) => (
                 <div
-                  key={msg.id}
-                  onClick={() => setSelectedMessage(msg)}
+                  key={userId}
+                  onClick={() => {
+                    setSelectedUserId(userId);
+                    setReceiverId(userId);
+                    setReceiverName(userMap[userId] || '');
+                  }}
                   className={`cursor-pointer p-4 mb-2 rounded-xl transition ${
-                    selectedMessage?.id === msg.id ? 'bg-white/20' : 'hover:bg-white/10'
+                    selectedUserId === userId ? 'bg-white/20' : 'hover:bg-white/10'
                   }`}
                 >
-                  <h5 className="font-bold text-yellow-400">{msg.subject}</h5>
-                  <p className="text-sm text-blue-200">{msg.sender}</p>
-                  <p className="text-xs text-blue-200 mt-1">{msg.timestamp}</p>
+                  <h5 className="font-bold text-yellow-400">
+                    {userMap[userId] || `Kullanıcı #${userId}`}
+                  </h5>
                 </div>
               ))}
             </div>
 
-            {/* Right: Message Content & Composer */}
+            {/* Message Viewer & Composer */}
             <div className="w-2/3 flex flex-col bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-              {/* Message flow */}
-              <div className="flex-1 p-6 overflow-y-auto space-y-6">
-                {selectedMessage ? (
-                  <div>
-                    <h4 className="text-2xl font-bold text-yellow-400 mb-4">{selectedMessage.subject}</h4>
-                    <div className="space-y-4">
-                      {/* Simulated conversation flow: for now, only single message */}
-                      <div className="p-4 bg-white/20 rounded-lg">
-                        <p className="text-blue-900"><strong>{selectedMessage.sender}:</strong> {selectedMessage.content}</p>
-                        <p className="text-xs mt-2 text-blue-200 text-right">{selectedMessage.timestamp}</p>
+              {/* Message viewer */}
+              <div className="flex-1 p-6 overflow-y-auto space-y-4">
+              {selectedUserId ? (
+                [...messages]
+                  .reverse()
+                  .filter(
+                    (msg) =>
+                      (msg.senderId === String(currentUser?.id) && msg.receiverId === selectedUserId) ||
+                      (msg.senderId === selectedUserId && msg.receiverId === String(currentUser?.id))
+                  )
+                  .map((msg) => {
+                    const isCurrentUserSender = msg.senderId === String(currentUser?.id);
+                    const alignment = isCurrentUserSender ? 'justify-end' : 'justify-start';
+                    const bubbleColor = isCurrentUserSender ? 'bg-yellow-100 text-black' : 'bg-white/20 text-white';
+                    const textAlign = isCurrentUserSender ? 'text-right' : 'text-left';
+
+                    return (
+                      <div key={msg.id} className={`flex ${alignment}`}>
+                        <div className={`max-w-[70%] ${bubbleColor} ${textAlign} p-3 rounded-xl`}>
+                          <p>{msg.content}</p>
+                          <p className="text-xs mt-2 text-blue-200">{new Date(msg.sentAt).toLocaleString()}</p>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-blue-200">Mesaj seçiniz.</p>
-                )}
-              </div>
+                    );
+                  })
+              ) : (
+                <p className="text-blue-200">Bir kişi seçin...</p>
+              )}
+            </div>
+
 
               {/* Composer */}
               <div className="p-4 border-t border-white/20">
                 <textarea
                   className="w-full bg-white/20 backdrop-blur-sm rounded-xl p-3 resize-none focus:outline-none"
                   rows={3}
-                  placeholder="Mesaj yaz..."
+                  placeholder={`Mesaj yaz...${receiverName ? ` (${receiverName})` : ''}`}
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
                 />
-                <button className="mt-3 px-5 py-2 bg-yellow-400 text-black rounded-xl float-right hover:bg-yellow-300 transition">
+                <button
+                  onClick={handleSend}
+                  className="mt-3 px-5 py-2 bg-yellow-400 text-black rounded-xl float-right hover:bg-yellow-300 transition"
+                >
                   Gönder
                 </button>
               </div>

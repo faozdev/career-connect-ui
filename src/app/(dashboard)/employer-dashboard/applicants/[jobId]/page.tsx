@@ -89,9 +89,34 @@ export default function ApplicantsPage() {
     }
   };
 
-  const handleOffer = (name: string) => {
-    alert(`${name} adlı adaya teklif başarıyla gönderildi!`);
+  const handleOffer = async (applicant: Applicant) => {
+    if (!currentUser) return;
+  
+    const payload = {
+      senderId: String(currentUser.id),
+      receiverId: String(applicant.id),
+      content: `Sayın ${applicant.name}, başvurunuz olumlu değerlendirilmiştir. Sizi ekibimizde görmek isteriz.`,
+    };
+  
+    try {
+      await api.post('/message/send', payload);
+      alert(`${applicant.name} adlı adaya otomatik teklif mesajı gönderildi!`);
+    } catch (err) {
+      console.error('Otomatik teklif mesajı gönderilemedi:', err);
+    }
   };
+  
+  
+  const handleMessage = async (applicantId: number) => {
+    try {
+      const res = await api.get<{ id: number; name: string; email: string }>(`/auth/profile/${applicantId}`);
+      const userName = res.data.name;
+      router.push(`/message?user=${userName}&id=${applicantId}`);
+    } catch (error) {
+      console.error('Kullanıcı profili alınamadı:', error);
+    }
+  };
+  
 
   return (
     <ProtectedRoute>
@@ -148,14 +173,14 @@ export default function ApplicantsPage() {
                     <p className="text-blue-200 mt-1 mb-4">Uyum Oranı: %{applicant.matchRate}</p>
                   </div>
                   <div className="flex gap-4 mt-auto">
-                    <button
-                      onClick={() => handleOffer(applicant.name)}
-                      className="flex-1 bg-yellow-400 text-indigo-900 font-semibold py-2 rounded-full hover:bg-yellow-300 transition"
-                    >
-                      Teklif Gönder
-                    </button>
-                    <button
-                      onClick={() => router.push('/messages')}
+                  <button
+                    onClick={() => handleOffer(applicant)}
+                    className="flex-1 bg-yellow-400 text-indigo-900 font-semibold py-2 rounded-full hover:bg-yellow-300 transition"
+                  >
+                    Teklif Gönder
+                  </button>
+                  <button
+                      onClick={() => handleMessage(applicant.id)}
                       className="flex-1 bg-white/20 text-white font-semibold py-2 rounded-full hover:bg-white/30 transition"
                     >
                       Mesaj Gönder

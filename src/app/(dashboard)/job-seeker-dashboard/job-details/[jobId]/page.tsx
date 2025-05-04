@@ -1,13 +1,12 @@
-//// src/app/(dashboard)/job-seeker-dashboard/job-details/[jobId]/page.tsx
+// src/app/(dashboard)/job-seeker-dashboard/job-details/[jobId]/page.tsx
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
-import { FiLogOut } from 'react-icons/fi';
-import { useRelevantJobs } from '@/context/RelevantJobsContext';
-import api from '@/lib/api'; 
+import { FiLogOut, FiTrash2 } from 'react-icons/fi';
+import api from '@/lib/api';
 
 interface Job {
   id: number;
@@ -21,6 +20,20 @@ interface Job {
   skills?: string[];
   applicants?: any[];
 }
+
+interface CV {
+  id: number;
+  userId: number;
+  skills: string[];
+  education: string[];
+  experience: string[];
+}
+
+interface MatchResult {
+  job: Job;
+  score: number;
+}
+
 const getReadableType = (type: string | number) => {
   return type === 0 || type === '0'
     ? 'Full-time'
@@ -28,14 +41,16 @@ const getReadableType = (type: string | number) => {
     ? 'Part-time'
     : String(type);
 };
+
 export default function JobDetailsPage() {
   const { jobId } = useParams();
   const router = useRouter();
   const { currentUser, logout } = useAuth();
-  const { getJobById } = useRelevantJobs();
-
   const [job, setJob] = useState<Job | null>(null);
   const [applied, setApplied] = useState(false);
+  const [cv, setCv] = useState<CV | null>(null);
+  const [matchedJobs, setMatchedJobs] = useState<MatchResult[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -44,23 +59,35 @@ export default function JobDetailsPage() {
     }
 
     const fetchJob = async () => {
-      const result = await getJobById(Number(jobId));
-      if (result) {
-        setJob(result);
+      try {
+        const res = await api.get<Job>(`/job/${jobId}`);
+        setJob(res.data);
+      } catch (err) {
+        console.error('Job load failed', err);
       }
     };
-    
+
+    const fetchCV = async () => {
+      try {
+        const res = await api.get<CV[]>(`/cv/user/${currentUser.id}`);
+        const userCV = res.data[0];
+        if (userCV) {
+          setCv(userCV);
+          const matchRes = await api.get<MatchResult[]>(`/cv/match-jobs/${userCV.id}`);
+          setMatchedJobs(matchRes.data.filter(m => m.score >= 20));
+        }
+      } catch (err) {
+        setCv(null);
+      }
+    };
 
     fetchJob();
-  }, [jobId, currentUser, getJobById, router]);
+    fetchCV();
+  }, [jobId, currentUser, router]);
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
+    await logout();
+    router.push('/login');
   };
 
   const handleApply = async () => {
@@ -69,12 +96,35 @@ export default function JobDetailsPage() {
       await api.post(`/job/${jobId}/apply`, null, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setApplied(true);
       alert('Başvurunuz başarıyla alınmıştır!');
     } catch (err: any) {
       console.error(err);
       alert(err?.response?.data?.message || 'Başvuru sırasında hata oluştu.');
+    }
+  };
+
+  const handleDeleteCV = async () => {
+    if (!cv) return;
+    try {
+      await api.delete(`/cv/${cv.id}`);
+      setCv(null);
+      setMatchedJobs([]);
+    } catch (error) {
+      console.error('CV silinemedi:', error);
+    }
+  };
+
+  const handleUploadCV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await api.post<CV>(`/cv/upload/${currentUser.id}`, formData);
+      setCv(res.data);
+    } catch (error) {
+      console.error('CV yüklenemedi:', error);
     }
   };
 
@@ -109,7 +159,7 @@ export default function JobDetailsPage() {
           {!job ? (
             <p className="text-blue-200">İlan bilgisi yükleniyor...</p>
           ) : (
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 mb-10">
               <h2 className="text-3xl font-bold text-yellow-400 mb-2">{job.title}</h2>
               <p className="text-blue-200 mb-1">{job.company} – {job.location}</p>
               <p className="text-blue-200 mb-4">{getReadableType(job.type)} | {job.salary}</p>
@@ -122,9 +172,10 @@ export default function JobDetailsPage() {
                     <li key={i}>{req}</li>
                   ))}
                 </ul>
-                ) : (
-                  <p className="text-white/90 mb-8">{job.requirements}</p>
-                )}
+              ) : (
+                <p className="text-white/90 mb-8">{job.requirements}</p>
+              )}
+
               {!applied ? (
                 <button
                   onClick={handleApply}
